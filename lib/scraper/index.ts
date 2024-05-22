@@ -5,7 +5,7 @@ import { extractCurrency, extractPrice } from "../utils";
 export async function scrapeAmazonProduct(url: string) {
   if (!url) return;
 
-  //BrightData proxy configuration
+  // BrightData proxy configuration
   const username = String(process.env.BRIGHTDATA_USERNAME);
   const password = String(process.env.BRIGHTDATA_PASSWORD);
   const port = 22225;
@@ -33,11 +33,9 @@ export async function scrapeAmazonProduct(url: string) {
     );
 
     const originalPrice = extractPrice(
-      $("#priceblock_ourprice"),
       $(".a-price.a-text-price span.a-offscreen"),
-      $("#listPrice"),
-      $("#priceblock_dealprice"),
-      $(".a-size-base.a-color-price.a-text-strike")
+      $(".a-price.a-text-price span.a-price-whole"),
+      $(".a-price.a-text-price span.a-price-fraction")
     );
 
     const outOfStock = $("#availability span")
@@ -53,22 +51,31 @@ export async function scrapeAmazonProduct(url: string) {
     const imageUrl = Object.keys(JSON.parse(images));
 
     const currency = extractCurrency($(".a-price-symbol"));
-    const discountRate = $(".savingsPercentage").text().replace(/[-%]/g, "");
+    const discountRateText = $(".savingsPercentage").text().trim().match(/\d+/);
+    const discountRate = discountRateText ? discountRateText[0] : "0";
 
-    const description: string[] = [];
+    const description: { descriptionItem: string }[] = [];
     $("#feature-bullets ul li").each((_, el) => {
-      description.push($(el).text().trim());
+      description.push({ descriptionItem: $(el).text().trim() });
     });
 
-    const category: string[] = [];
+    const category: { categoryItem: string }[] = [];
     $("#wayfinding-breadcrumbs_feature_div .a-link-normal").each((_, el) => {
-      category.push($(el).text().trim());
+      category.push({ categoryItem: $(el).text().trim() });
     });
 
-    const reviewsCount = $("#acrCustomerReviewText").text().split(" ")[0];
-    // only get the first 3 characters of the stars
-    const stars = $("#acrPopover").attr("title");
+    const reviewsCountText = $("#acrCustomerReviewText")
+      .text()
+      .match(/\d{1,3}(?:,\d{3})*/);
+    const reviewsCount = reviewsCountText
+      ? reviewsCountText[0].replace(/,/g, "")
+      : 0;
 
+    const stars = $("#acrPopover").attr("title");
+    
+    // <span id="social-proofing-faceout-title-tk_bought" class="a-size-small social-proofing-faceout-title-text">    <span>5K+ bought in past month</span>     </span>
+    const boughtThisMonth = String($("#social-proofing-faceout-title-tk_bought").text().trim());
+    
     const data = {
       url,
       currency: currency || "$",
@@ -76,14 +83,20 @@ export async function scrapeAmazonProduct(url: string) {
       title,
       currentPrice: Number(currentPrice),
       originalPrice: Number(originalPrice),
+      lowestPrice: Number(currentPrice) || Number(originalPrice),
+      highestPrice: Number(originalPrice) || Number(currentPrice),
+      averagePrice: Number(currentPrice) || Number(originalPrice),
       priceHistory: [],
       discountRate: Number(discountRate),
-      category: category,
+      category, // Array of category objects
       reviewsCount: Number(reviewsCount),
       stars: String(stars).substring(0, 3),
       isOutofStock: outOfStock,
-      description,
+      description, // Array of description objects
+      boughtThisMonth
     };
+
+    return data;
   } catch (error: any) {
     throw new Error(`failed to scrape product: ${error.message}`);
   }
