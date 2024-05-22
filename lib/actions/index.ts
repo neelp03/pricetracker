@@ -36,30 +36,66 @@ export async function scrapeAndStoreProduct(productUrl: string) {
       { upsert: true, new: true }
     );
 
-    revalidatePath(`products/${newProduct._id}`);
+    revalidatePath(`/products/${newProduct._id}`);
   } catch (error: any) {
-    console.error("Error details:", error);
+    console.log("Error details:", error);
+    throw new Error("Failed to scrape and store product");
   }
 }
 
 export async function getProductById(productId: string) {
   try {
-    connectToDB();
-    const product = await Product.findOne({_id: productId});
-    if(!product) return null;
+    await connectToDB();
+    const product = await Product.findOne({ _id: productId });
+    if (!product) return null;
     return product;
   } catch (error: any) {
-    console.error("Error details:", error);
+    console.log("Error details:", error);
+    throw new Error("Failed to get product by ID");
   }
 }
 
 export async function getAllProducts() {
   try {
-    connectToDB();
+    await connectToDB();
     const products = await Product.find();
-    if(!products) return [];
+    if (!products) return [];
     return products;
   } catch (error: any) {
-    console.error("Error details:", error);
+    console.log("Error details:", error);
+    throw new Error("Failed to get all products");
+  }
+}
+export async function getSimilarProducts(productId: string) {
+  try {
+    await connectToDB();
+    const currentProduct = await Product.findById(productId);
+    if (!currentProduct) return null;
+
+    let similarProducts;
+
+    if (currentProduct.category.length > 0) {
+      const categoryItems = currentProduct.category.map((cat: { categoryItem: string }) => cat.categoryItem);
+      
+      similarProducts = await Product.find({
+        'category.categoryItem': { $in: categoryItems },
+        _id: { $ne: productId }
+      }).limit(3);
+    }
+
+    if (!similarProducts || similarProducts.length === 0) {
+      const titleWords = currentProduct.title.split(' ').map((word: string) => word.trim()).filter((word: string) => word.length > 2);
+      const regex = new RegExp(titleWords.join('|'), 'i');
+
+      similarProducts = await Product.find({
+        title: { $regex: regex },
+        _id: { $ne: productId }
+      }).limit(3);
+    }
+
+    return similarProducts;
+  } catch (error: any) {
+    console.log("Error details:", error);
+    throw new Error("Failed to get similar products");
   }
 }

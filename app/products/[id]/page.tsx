@@ -1,5 +1,7 @@
+import Modal from "@/components/Modal";
 import PriceInfoCard from "@/components/PriceInfoCard";
-import { getProductById } from "@/lib/actions";
+import ProductCard from "@/components/ProductCard";
+import { getProductById, getSimilarProducts } from "@/lib/actions";
 import { formatNumber } from "@/lib/utils";
 import { Product } from "@/types";
 import Image from "next/image";
@@ -17,8 +19,20 @@ const isUpperCase = (word: string) => /^[A-Z]+$/.test(word.replace(/[^\w\s]|_/g,
 
 const ProductDetails = async ({ params: { id } }: Props) => {
   const product: Product = await getProductById(id);
+  const similarProducts = await getSimilarProducts(id);
 
   if (!product) redirect('/');
+
+  const boldDescriptionPart = (text: string) => {
+    const parts = text.split(/[-:]/);
+    return (
+      <>
+        <span className="font-semibold">{parts[0]}</span>
+        {text.includes('-') ? '-' : text.includes(':') ? ':' : ''}
+        {parts.slice(1).join(text.includes('-') ? '-' : ':')}
+      </>
+    );
+  };
 
   return (
     <div className="product-container">
@@ -158,7 +172,7 @@ const ProductDetails = async ({ params: { id } }: Props) => {
             </div>
           </div>
 
-          Modal
+          <Modal />
         </div>
       </div>
 
@@ -177,18 +191,52 @@ const ProductDetails = async ({ params: { id } }: Props) => {
           </div>
 
           <div className="flex flex-col gap-4">
-            {product.description.map((item, index) => (
-              <p key={index} className="text-base text-black-100">
-                {item.descriptionItem.split(' ').map((word, i) => (
-                  <span key={i} className={isUpperCase(word) ? 'font-semibold' : ''}>
-                    {word}{' '}
-                  </span>
-                ))}
-              </p>
+          {product.description.map((item, index) => (
+            <p key={index} className="text-base text-black-100">
+              {item.descriptionItem.split(' ').map((word, i) => {
+                const cleanWord = word.replace(/[^\w\s]|_/g, ""); // Remove trailing punctuation
+                if (i === 0 && (word.includes('-') || word.includes(':'))) {
+                  return <span key={i}>{boldDescriptionPart(word)}{' '}</span>;
+                } else {
+                  return (
+                    <span key={i} className={isUpperCase(cleanWord) ? 'font-semibold' : ''}>
+                      {word}{' '}
+                    </span>
+                  );
+                }
+              })}
+            </p>
+          ))}
+          </div>
+        </div>
+
+        <button className="btn w-fit mx-auto flex items-center justify-center gap-3 min-w-[200px]">
+          <Image
+            src="/assets/icons/bag.svg"
+            alt="checkout"
+            width={22}
+            height={22}
+          />
+
+          <Link
+            href={product.url}
+            target="_blank"
+            className="text-base text-white"
+          >Buy Now</Link>
+        </button>
+      </div>
+
+      {similarProducts && similarProducts?.length > 0 && (
+        <div className="py-14 flex flex-col gap-2 w-full">
+          <p className="section-text">Similar Products</p>
+
+          <div className="flex flex-wrap gap-10 mt-7 w-full">
+            {similarProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
