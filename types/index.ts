@@ -30,8 +30,8 @@ export type Product = {
   description: DescriptionItem[] | [];
   category: CategoryItem[] | [];
   reviewsCount: number;
-  stars: number;
-  isOutOfStock: Boolean;
+  stars: string;
+  isOutofStock: Boolean;
   users?: User[];
   boughtThisMonth: string;
 };
@@ -50,4 +50,5 @@ export type EmailContent = {
 export type EmailProductInfo = {
   title: string;
   url: string;
+  image: string;
 };
