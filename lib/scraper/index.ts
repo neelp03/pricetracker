@@ -72,10 +72,12 @@ export async function scrapeAmazonProduct(url: string) {
       : 0;
 
     const stars = $("#acrPopover").attr("title");
-    
+
     // <span id="social-proofing-faceout-title-tk_bought" class="a-size-small social-proofing-faceout-title-text">    <span>5K+ bought in past month</span>     </span>
-    const boughtThisMonth = String($("#social-proofing-faceout-title-tk_bought").text().trim());
-    
+    const boughtThisMonth = String(
+      $("#social-proofing-faceout-title-tk_bought").text().trim()
+    );
+
     const data = {
       url,
       currency: currency || "$",
@@ -91,9 +93,9 @@ export async function scrapeAmazonProduct(url: string) {
       category, // Array of category objects
       reviewsCount: Number(reviewsCount),
       stars: String(stars).substring(0, 3),
-      isOutofStock: outOfStock,
+      isOutOfStock: outOfStock,
       description, // Array of description objects
-      boughtThisMonth
+      boughtThisMonth,
     };
 
     return data;

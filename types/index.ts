@@ -31,7 +31,7 @@ export type Product = {
   category: CategoryItem[] | [];
   reviewsCount: number;
   stars: string;
-  isOutofStock: Boolean;
+  isOutOfStock: Boolean;
   users?: User[];
   boughtThisMonth: string;
 };
